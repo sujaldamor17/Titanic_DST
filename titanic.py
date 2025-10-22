@@ -5,7 +5,7 @@ import joblib
 # 🎯 Load model and scaler
 model = joblib.load("model.pkl")
 try:
-    scaler = joblib.load("scaler.pkl")  # Optional: only if you saved a scaler
+    scaler = joblib.load("scaler.pkl")
 except FileNotFoundError:
     scaler = None
     st.warning("⚠️ scaler.pkl not found — input will not be scaled.")
@@ -14,25 +14,38 @@ except Exception as e:
     st.warning(f"⚠️ Failed to load scaler.pkl: {e}")
 
 # 🏷️ App title
-st.title("🚢 Titanic Survivor Predictor")
-st.write("Fill in passenger details to check survival prediction:")
+st.markdown("<h1 style='text-align: center;'>🚢 Titanic Survivor Predictor</h1>", unsafe_allow_html=True)
 
-# 📥 Input fields — interactive style
-pclass = st.radio("🛏️ Passenger Class", [1, 2, 3], index=2)
-sex = st.selectbox("🧍 Sex", ["male", "female"])
-age = st.slider("🎂 Age", min_value=0, max_value=100, value=25)
-sibsp = st.slider("👫 Siblings/Spouses Aboard", min_value=0, max_value=10, value=0)
-parch = st.slider("👨‍👩‍👧‍👦 Parents/Children Aboard", min_value=0, max_value=10, value=0)
-fare = st.number_input("💰 Fare Paid", min_value=0.0, max_value=600.0, value=30.0)
+# 📥 Input layout — 2 columns for clean UI
+col1, col2 = st.columns(2)
 
-# 🔄 Encode categorical feature
-sex_encoded = 1 if sex == "male" else 0
+with col1:
+    pclass = st.selectbox("🛏️ Passenger Class", options=["1st Class", "2nd Class", "3rd Class"], index=2,
+                          help="Higher class had better survival chances")
+    pclass_val = {"1st Class": 1, "2nd Class": 2, "3rd Class": 3}[pclass]
+
+    sex = st.radio("🧍 Sex", options=["Male 🚹", "Female 🚺"], index=0,
+                   help="Females had higher survival rate")
+    sex_encoded = 1 if "Male" in sex else 0
+
+    age_group = st.selectbox("🎂 Age Group", options=["Child (0-12)", "Teen (13-19)", "Adult (20-59)", "Senior (60+)"], index=2,
+                             help="Age affects survival probability")
+    age_val = {"Child (0-12)": 6, "Teen (13-19)": 16, "Adult (20-59)": 35, "Senior (60+)": 65}[age_group]
+
+with col2:
+    sibsp = st.selectbox("👫 Siblings/Spouses Aboard", options=list(range(0, 6)), index=0,
+                         help="Number of siblings/spouses aboard")
+    parch = st.selectbox("👨‍👩‍👧‍👦 Parents/Children Aboard", options=list(range(0, 6)), index=0,
+                         help="Number of parents/children aboard")
+
+    fare_range = st.selectbox("💰 Fare Paid", options=["Low (<₹500)", "Medium (₹500–₹2000)", "High (₹2000+)"], index=1,
+                              help="Fare often correlates with class")
+    fare_val = {"Low (<₹500)": 300, "Medium (₹500–₹2000)": 1000, "High (₹2000+)": 2500}[fare_range]
 
 # 🔘 Predict button
 if st.button("🔍 Predict Survival", key="predict_button"):
-    input_data = np.array([[pclass, sex_encoded, age, sibsp, parch, fare]])
+    input_data = np.array([[pclass_val, sex_encoded, age_val, sibsp, parch, fare_val]])
 
-    # Apply scaling if scaler is available
     if scaler:
         input_scaled = scaler.transform(input_data)
     else:
@@ -40,4 +53,6 @@ if st.button("🔍 Predict Survival", key="predict_button"):
 
     prediction = model.predict(input_scaled)[0]
     result = "🟢 Survived" if prediction == 1 else "🔴 Did Not Survive"
-    st.header(f"Prediction: {result}")
+
+    st.success(f"🎯 Prediction: {result}")
+    st.balloons()
