@@ -3,8 +3,15 @@ import numpy as np
 import joblib
 
 # 🎯 Load model and scaler
-model = joblib.load(r"C:\Users\Lenovo\Desktop\Robotronix Python ML\Machine Learning practice\Decision Tree practice\model.pkl")
-scaler = joblib.load(r"C:\Users\Lenovo\Desktop\Robotronix Python ML\Machine Learning practice\Decision Tree practice\scaler.pkl")  # If used
+model = joblib.load("model.pkl")
+try:
+    scaler = joblib.load("scaler.pkl")  # Optional: only if you saved a scaler
+except FileNotFoundError:
+    scaler = None
+    st.warning("scaler.pkl not found — input will not be scaled.")
+except Exception as e:
+    scaler = None
+    st.warning(f"Failed to load scaler.pkl: {e}")
 
 # 🏷️ App title
 st.title("🚢 Titanic Survivor Predictor")
@@ -14,13 +21,18 @@ st.write("Fill in passenger details to check survival prediction:")
 pclass = st.radio("🛏️ Passenger Class", [1, 2, 3], index=2)
 sex = st.selectbox("🧍 Sex", ["male", "female"])
 age = st.slider("🎂 Age", min_value=0, max_value=100, value=25)
-sibsp = st.slider("👫 Siblings/Spouses Aboard", min_value=0, max_value=10, value=0)
-parch = st.slider("👨‍👩‍👧‍👦 Parents/Children Aboard", min_value=0, max_value=10, value=0)
-fare = st.number_input("💰 Fare Paid", min_value=0.0, max_value=600.0, value=30.0)
-
-# 🔄 Encode categorical feature
-sex_encoded = 1 if sex == "male" else 0
-
+# 🔘 Predict button
+if st.button("🔍 Predict Survival"):
+    input_data = np.array([[pclass, sex_encoded, age, sibsp, parch, fare]])
+    # Apply scaler if available, otherwise use raw inputs
+    try:
+        features = scaler.transform(input_data) if scaler is not None else input_data
+    except Exception as e:
+        st.warning(f"Scaling failed, using raw inputs: {e}")
+        features = input_data
+    prediction = model.predict(features)[0]
+    result = "🟢 Survived" if int(prediction) == 1 else "🔴 Did Not Survive"
+    st.header(f"Prediction: {result}")
 # 🔘 Predict button
 if st.button("🔍 Predict Survival"):
     input_data = np.array([[pclass, sex_encoded, age, sibsp, parch, fare]])
